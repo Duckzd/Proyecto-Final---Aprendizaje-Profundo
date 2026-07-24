@@ -1,0 +1,12 @@
+# Dependencias de la Etapa 1 (SIN librerías de Deep Learning).
+numpy>=1.24
+pillow>=9.5
+matplotlib>=3.7
+
+# Sólo para el notebook de desarrollo (development.ipynb):
+jupyter>=1.0
+pandas>=2.0
+
+# Etapa 2 — entrenamiento del modelo (Sección 9 del notebook):
+torch>=2.0
+scikit-learn>=1.3   # opcional (utilidades de métricas)
