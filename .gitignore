@@ -25,3 +25,6 @@ ppt/*.backup*.pptx
 # --- Temporales de MS Office (locks al tener abierto un .pptx) ---
 ~$*
 .~lock.*
+
+# --- PDFs compilados (no versionar) ---
+*.pdf
