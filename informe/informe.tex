@@ -43,8 +43,8 @@ directa}. Sobre esta representación construimos un conjunto de datos de
 $600\times40\times17$ generado de forma procedural y entrenamos redes recurrentes
 (RNN, LSTM y GRU) para predecir el siguiente estado a partir de una ventana
 temporal. El mejor modelo alcanza un error cuadrático medio de validación de
-$0{,}0071$ en el espacio normalizado, con errores de $\mathrm{MAE}=1{,}42$ y
-$\mathrm{RMSE}=2{,}18$ en unidades físicas, y genera animaciones autoregresivas
+$0{,}0077$ en el espacio normalizado, con errores de $\mathrm{MAE}=1{,}48$ y
+$\mathrm{RMSE}=2{,}27$ en unidades físicas, y genera animaciones autoregresivas
 visualmente correctas para los diez movimientos considerados. Una extensión
 condicionada por acción permite además encadenar coreografías a demanda. Puesto
 que la salida de la red reutiliza el mismo motor de cinemática y de render de la
@@ -302,22 +302,22 @@ deseada, de manera que la dimensión de entrada pasa de 17 a $17+10=27$. Este
 modelo se entrena sobre secuencias compuestas, esto es, concatenaciones de dos o
 tres movimientos con transiciones interpoladas, para que aprenda también los
 tránsitos entre acciones. Se emplearon $12\,108$ ventanas y una GRU de 96
-unidades durante 16 épocas, alcanzando una pérdida final de $0{,}0162$.
+unidades durante 16 épocas, alcanzando una pérdida final de $0{,}0163$.
 
 %=====================================================================
 \section{Resultados y discusión}
 %=====================================================================
 \subsection{Convergencia y error}
 La Fig.~\ref{fig:loss} muestra las curvas de pérdida del modelo GRU. El error de
-validación desciende de $0{,}3187$ a $0{,}0071$ a lo largo de 15 épocas de forma
+validación desciende de $0{,}3126$ a $0{,}0077$ a lo largo de 15 épocas de forma
 monótona y sin separarse de la curva de entrenamiento, lo que indica ausencia de
 sobreajuste. Este comportamiento era previsible, ya que el generador provee
 variabilidad ilimitada y opera como una forma intensiva de aumento de datos.
 
 Sobre las $2\,160$ ventanas de validación, el error de predicción a un paso
-expresado en unidades físicas es de $\mathrm{MAE}=1{,}42$ y
-$\mathrm{RMSE}=2{,}18$. Dado que los ángulos recorren rangos de hasta
-$150^\circ$, un error medio próximo a $1{,}4^\circ$ resulta visualmente
+expresado en unidades físicas es de $\mathrm{MAE}=1{,}48$ y
+$\mathrm{RMSE}=2{,}27$. Dado que los ángulos recorren rangos de hasta
+$150^\circ$, un error medio próximo a $1{,}5^\circ$ resulta visualmente
 imperceptible.
 
 \begin{figure}[t]
@@ -332,8 +332,8 @@ imperceptible.
 La Tabla~\ref{tab:comp} compara las tres celdas en igualdad de condiciones, con
 10 épocas cada una. Las celdas con compuertas superan claramente a la RNN simple
 en todas las métricas de error. Entre ellas, LSTM y GRU quedan muy próximas, con
-un MAE de $1{,}73$ frente a $1{,}78$, pero la GRU entrena aproximadamente un
-15\,\% más rápido por disponer de menos parámetros por celda. La RNN simple es la
+un MAE de $1{,}64$ frente a $1{,}66$, pero la GRU entrena cerca de un
+17\,\% más rápido por disponer de menos parámetros por celda. La RNN simple es la
 más veloz y a la vez la menos precisa, y cualitativamente es también la que antes
 se degrada en generación larga. Este patrón coincide con lo reportado en
 predicción de movimiento humano \cite{martinez}.
@@ -347,9 +347,9 @@ predicción de movimiento humano \cite{martinez}.
 \toprule
 Modelo & $t_{\text{entren}}$ (s) & $t_{\text{infer}}$ (s) & MSE val. & MAE & RMSE \\
 \midrule
-RNN  & 2{,}11 & 0{,}0039 & 0{,}0137 & 1{,}929 & 3{,}577 \\
-LSTM & 6{,}65 & 0{,}0075 & \textbf{0{,}0118} & \textbf{1{,}727} & \textbf{3{,}107} \\
-GRU  & 5{,}64 & 0{,}0073 & 0{,}0122 & 1{,}778 & 3{,}303 \\
+RNN  & 1{,}97 & 0{,}0037 & 0{,}0143 & 1{,}938 & 3{,}630 \\
+LSTM & 6{,}47 & 0{,}0075 & \textbf{0{,}0104} & \textbf{1{,}641} & \textbf{2{,}897} \\
+GRU  & 5{,}39 & 0{,}0072 & 0{,}0109 & 1{,}663 & 3{,}065 \\
 \bottomrule
 \end{tabular}
 \end{table}
