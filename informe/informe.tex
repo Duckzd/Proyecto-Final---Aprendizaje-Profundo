@@ -22,10 +22,11 @@
 articulado mediante redes neuronales recurrentes sobre un estado cinemático}}
 
 \author{
+  Jorge Andrés Zúñiga Delgado\\
   \textit{Maestría en Inteligencia Artificial --- Aprendizaje Profundo}\\
   Proyecto Final
 }
-\date{}
+\date{24 de julio de 2026}
 
 \begin{document}
 \maketitle
@@ -100,10 +101,9 @@ que incluyamos la fase dentro del propio estado. Por su parte, Villegas
 red para garantizar huesos de longitud constante, idea que nosotros aplicamos
 situando la cinemática directa fuera del modelo, como paso de decodificación.
 
-Nuestro escenario se diferencia de todos ellos en que es bidimensional y
-controlado: el generador procedural provee datos ilimitados, perfectamente
-etiquetados y sin ruido de captura, lo que permite estudiar el efecto de la
-arquitectura sin confundirlo con las limitaciones de los datos.
+A diferencia de esos trabajos, nuestro escenario es 2D y controlado: el generador
+procedural provee datos ilimitados y sin ruido, lo que aísla el efecto de la
+arquitectura del de la calidad de los datos.
 
 %=====================================================================
 \section{Representación cinemática y renderizado}
@@ -131,29 +131,16 @@ $[-30^\circ,30^\circ]$. Esto impide poses anatómicamente imposibles incluso si 
 modelo predice valores fuera de rango y, como veremos, estabiliza la generación.
 
 \subsection{Del estado al personaje: el proceso de render}
-La motivación del renderizado es cerrar el ciclo de validación: un vector de
-números sólo resulta útil si podemos \emph{ver} si el movimiento es correcto. El
-error cuantitativo no distingue entre una desviación irrelevante y otra que
-arruina la pose; la inspección visual sí lo hace.
-
-El proceso consta de cuatro pasos, idénticos tanto para el generador procedural
-como para la red (Fig.~\ref{fig:pipeline}). En primer lugar, se recorre el árbol
-aplicando las ecuaciones (1) y (2), con lo que se obtienen el ángulo absoluto y
-la posición de los 17 nodos. En segundo lugar, a cada hueso le corresponde una
-imagen PNG con fondo transparente, generada también de forma procedural: torso,
-cabeza, cuello, brazo, antebrazo, mano, muslo, pantorrilla, pie y katana. En
-tercer lugar, cada pieza se dibuja apuntando hacia la derecha con su pivote
-situado en el borde izquierdo, se rota exactamente $\phi_j$ grados alrededor de
-ese pivote y se coloca sobre la articulación padre; como el pivote coincide
-siempre con la articulación, las piezas nunca se separan entre sí. Finalmente,
-las piezas se componen de atrás hacia delante y se convierten a coordenadas de
-pantalla. La cámara sigue a la cadera en horizontal, para que las traslaciones no
-saquen al personaje del encuadre, pero no en vertical, de modo que los saltos
-siguen siendo visibles.
-
-La consecuencia de diseño más importante es que el motor de render desconoce si
-el estado procede de una fórmula matemática o de una red neuronal, por lo que
-sustituir el generador por el modelo entrenado no obligó a modificarlo.
+El render cierra el ciclo de validación: sólo viendo el movimiento se distingue un
+error irrelevante de otro que arruina la pose. El proceso es idéntico para el
+generador procedural y para la red (Fig.~\ref{fig:pipeline}): se recorre el árbol
+con las ecuaciones (1) y (2) para obtener el ángulo y la posición de los 17 nodos;
+a cada hueso le corresponde una imagen PNG (generada también de forma procedural)
+que se rota $\phi_j$ grados alrededor de su pivote y se ancla sobre la articulación
+padre, de modo que las piezas nunca se separan; finalmente se componen de atrás
+hacia delante. Lo esencial es que el motor de render desconoce si el estado
+procede de una fórmula o de una red, por lo que sustituir el generador por el
+modelo entrenado no obligó a modificarlo.
 
 \begin{figure}[t]
   \centering
@@ -179,47 +166,22 @@ centrada en el instante del impacto,
 \begin{equation}
 e(t)=\exp\!\left(-\frac{(t-t_{g})^{2}}{2\sigma^{2}}\right),
 \end{equation}
-que vale cero al principio y al final y alcanza su máximo en el golpe. Los
-ángulos de la pierna derecha se obtienen interpolando entre la postura de reposo
-y la de impacto mediante ese factor:
+que vale cero en los extremos y alcanza su máximo en el golpe. Los ángulos de la
+pierna derecha interpolan entre reposo e impacto con ese factor:
 \begin{align}
 \text{right\_hip}(t)  &= \mathrm{lerp}(-10^\circ,\ r,\ e(t)),\\
-\text{right\_knee}(t) &= \mathrm{lerp}(70^\circ,\ 8^\circ,\ e(t)).
+\text{right\_knee}(t) &= \mathrm{lerp}(70^\circ,\ 8^\circ,\ e(t)),
 \end{align}
-Es decir, la cadera eleva la pierna al frente mientras la rodilla se extiende, y
-ambas regresan después a la posición inicial. La Tabla~\ref{tab:patada} muestra
-los valores reales producidos por el generador para una patada de 30 fotogramas:
-en el fotograma~15 la cadera alcanza $97{,}2^\circ$ y la rodilla se estira hasta
-$10{,}1^\circ$, que es el instante del impacto.
+de modo que la cadera eleva la pierna al frente mientras la rodilla se extiende, y
+ambas regresan a la posición inicial.
 
-\begin{table}[t]
-\centering
-\footnotesize
-\caption{Valores generados para una patada real (30 fotogramas). Cada fila es una
-pose completa; se muestran cuatro de las diecisiete variables.}
-\label{tab:patada}
-\begin{tabular}{@{}rrrrr@{}}
-\toprule
-Fotograma & right\_hip & right\_knee & torso\_angle & root\_y \\
-\midrule
-0  & $-9{,}5$ & $69{,}7$ & $0{,}0$ & $240{,}0$ \\
-6  & $9{,}4$  & $59{,}2$ & $1{,}7$ & $241{,}4$ \\
-12 & $90{,}5$ & $13{,}9$ & $9{,}1$ & $247{,}2$ \\
-15 & $\mathbf{97{,}2}$ & $\mathbf{10{,}1}$ & $9{,}7$ & $247{,}7$ \\
-18 & $59{,}1$ & $31{,}4$ & $6{,}2$ & $245{,}0$ \\
-24 & $-3{,}7$ & $66{,}5$ & $0{,}6$ & $240{,}5$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Un aspecto esencial es que los parámetros de estas funciones se \textbf{sortean
-al azar en cada ejecución}. En la patada varían el instante del golpe
-$t_g\sim U(0{,}45,\,0{,}60)$, la velocidad del ataque (que controla el ancho
-$\sigma$ de la campana) y el alcance $r\sim U(85^\circ,105^\circ)$; en la marcha
-varían la longitud del paso, la amplitud de los brazos y la inclinación del
-torso, y en el salto, su altura. Gracias a ello nunca se generan dos secuencias
-idénticas, lo que impide que la red memorice trayectorias y actúa como una forma
-intensiva de aumento de datos.
+Un aspecto esencial es que los parámetros se \textbf{sortean al azar en cada
+ejecución}: en la patada varían el instante del golpe $t_g\sim U(0{,}45,\,0{,}60)$,
+la velocidad del ataque (que fija el ancho $\sigma$) y el alcance
+$r\sim U(85^\circ,105^\circ)$; en la marcha, la longitud del paso, la amplitud de
+los brazos y la inclinación del torso; en el salto, su altura. Así nunca se
+generan dos secuencias idénticas, lo que impide memorizar trayectorias y actúa
+como una forma intensiva de aumento de datos.
 
 \subsection{Estructura del tensor}
 Generamos 60 variantes de cada uno de los 10 movimientos, fijando la duración en
@@ -247,8 +209,8 @@ Las rebanadas del tensor tienen una interpretación igualmente clara.
 \texttt{data[430,\,22,\,:]} es un vector de 17 números que constituye la
 \emph{pose completa} del personaje en ese instante, la fotografía instantánea de
 todo el cuerpo. En cambio, \texttt{data[430,\,:,\,13]} es la \emph{trayectoria
-temporal} de esa única articulación a lo largo de toda la patada, es decir, la
-curva ascendente y descendente que ilustra la Tabla~\ref{tab:patada}.
+temporal} de esa única articulación a lo largo de toda la patada: una curva
+ascendente y descendente que reproduce la mecánica del golpe.
 
 Merece subrayarse que una fila no contiene un ángulo aislado, sino los doce
 ángulos articulares de forma simultánea junto con la raíz, sus velocidades y la
@@ -398,7 +360,7 @@ La evaluación visual constituye la prueba definitiva. Partiendo de una semilla 
 los diez movimientos, y todos resultan reconocibles y anatómicamente plausibles.
 La Fig.~\ref{fig:res}(a) muestra una patada generada por el modelo en la que la
 cadera se eleva y la rodilla se extiende en el instante del impacto,
-reproduciendo la mecánica descrita en la Tabla~\ref{tab:patada}. La
+reproduciendo la mecánica del golpe. La
 Fig.~\ref{fig:res}(b) muestra una secuencia encadenada de 124 fotogramas en la
 que el personaje corre, salta y ataca de forma continua.
 
@@ -428,29 +390,17 @@ este problema.
 %=====================================================================
 \section{Salidas del modelo: interpretación y ejecución}
 %=====================================================================
-\paragraph{Qué devuelve la red.} Una sola invocación produce un vector de 17
-números normalizados correspondientes al \textbf{siguiente} fotograma. No se
-trata de una imagen ni de una clase, sino de una pose. Para interpretarlo se
-deshace la normalización mediante $x=\tilde{x}\sigma+\mu$ y se lee cada
-componente según la Tabla~\ref{tab:estado}; por ejemplo, un valor de
-\texttt{right\_knee} cercano a $10^\circ$ indica una pierna casi extendida, y un
-\texttt{root\_y} elevado señala que el personaje se encuentra en el aire.
-
-\paragraph{Cómo se obtiene una animación completa.} Repitiendo el paso anterior
-de forma autoregresiva. Se parte de una ventana semilla, se predice la pose
-siguiente, se añade al final de la ventana y se descarta la más antigua. Cada
-pose se convierte en un diccionario de estado, se satura a los límites
-articulares, se transforma en coordenadas mediante cinemática directa y se
-dibuja.
-
-\paragraph{Ejecución.} El proyecto está organizado en módulos independientes y el
-visualizador interactivo se lanza con \texttt{python main.py}. El cuaderno
-\texttt{development.ipynb} contiene, en secciones ejecutables de forma
-independiente, la validación del esqueleto y la cinemática, el entrenamiento, el
-encadenado de acciones y un reproductor de las secuencias predichas. Los
-artefactos \texttt{best\_model.pt}, \texttt{cond\_model.pt} y
-\texttt{normalizer.npz} permiten reproducir la inferencia sin reentrenar. La
-implementación emplea PyTorch.
+Cada invocación devuelve un vector de 17 números normalizados: la pose siguiente,
+no una imagen ni una clase. Se interpreta deshaciendo la normalización
+($x=\tilde{x}\sigma+\mu$) y leyendo cada componente según la
+Tabla~\ref{tab:estado}. La animación completa se obtiene de forma autoregresiva:
+se parte de una ventana semilla, se predice la pose siguiente, se añade a la
+ventana y se descarta la más antigua; cada pose se satura a los límites
+articulares, se convierte en coordenadas por cinemática directa y se dibuja. El
+visualizador se lanza con \texttt{python main.py} y el cuaderno
+\texttt{development.ipynb} reproduce dataset, entrenamiento, comparación y
+generación; los artefactos \texttt{best\_model.pt} y \texttt{normalizer.npz}
+permiten inferir sin reentrenar. La implementación emplea PyTorch.
 
 %=====================================================================
 \section{Conclusiones}
@@ -462,10 +412,9 @@ lugar de sobre coordenadas. La cinemática directa garantiza por construcción q
 las longitudes de los huesos se conserven, y los límites articulares aportan una
 regularización física que estabiliza la generación autoregresiva.
 
-Las celdas con compuertas superan con claridad a la RNN simple y resultan
-equivalentes entre sí, con ventaja de coste computacional para la GRU.
-Cualitativamente, las diez acciones son reconocibles y el condicionamiento por
-acción permite encadenar coreografías a demanda.
+Las celdas con compuertas superan a la RNN simple y resultan equivalentes entre
+sí, con ventaja de coste para la GRU; las diez acciones son reconocibles y el
+condicionamiento por acción permite encadenar coreografías a demanda.
 
 Las limitaciones principales son la degradación del salto en horizontes largos,
 la predicción de la posición absoluta de la raíz, que acumula error, y el carácter
